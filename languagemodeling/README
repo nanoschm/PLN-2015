@@ -1,0 +1,7 @@
+Ejercicio 1) 
+
+Primero procedí a la obtención del corpus. Descargue el siguiente: http://www.cs.upc.edu/~nlp/wikicorpus/ raw_version, español, y elegi uno de los archivos que vienen en esa version (peso alrededor de 26mb).
+Tenía problemas como etiquetas html, y algunos elementos raros. Para sacar las etiquetas html use BeautifulSoup4 de Python3. El procedimiento fue similar al usado en la sección "Dealing with HTML" en http://www.nltk.org/book/ch03.html#regular-expressions-for-tokenizing-text.
+Luego de eso, quedo un corpus sin elementos raros, aunque al ser datos de wikipedia, se observa que algunos datos no son muy regulares, dependiendo el articulo, o hay articulos muy cortos.
+
+
