@@ -4,4 +4,6 @@ Primero procedí a la obtención del corpus. Descargue el siguiente: http://www.
 Tenía problemas como etiquetas html, y algunos elementos raros. Para sacar las etiquetas html use BeautifulSoup4 de Python3. El procedimiento fue similar al usado en la sección "Dealing with HTML" en http://www.nltk.org/book/ch03.html#regular-expressions-for-tokenizing-text.
 Luego de eso, quedo un corpus sin elementos raros, aunque al ser datos de wikipedia, se observa que algunos datos no son muy regulares, dependiendo el articulo, o hay articulos muy cortos.
 
+- Preguntar acerca de la "observación a ojo". A priori no noto cosas raras, excepto cuando en los articulos de wikipedia, aparece una cancion o un poema, o referencias a otros sitios, (debería dejarlas o sacarlas?)
+
 
