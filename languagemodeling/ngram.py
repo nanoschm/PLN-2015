@@ -78,10 +78,13 @@ class NGramGenerator:
         model -- n-gram model.
         """
         ngram = model
-        
- 
+        self.counts = counts = defaultdict(int)
+
+        start = ["<n>"] * n-1
+
     def generate_sent(self):
         """Randomly generate a sentence."""
+
  
     def generate_token(self, prev_tokens=None):
         """Randomly generate a token, given prev_tokens.

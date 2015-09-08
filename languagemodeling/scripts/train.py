@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # train the model
     n = int(opts['-n'])
     model = NGram(n, sents)
-
+    generate = NGramGenerator(model)
     # save it
     filename = opts['-o']
     f = open(filename, 'wb')
