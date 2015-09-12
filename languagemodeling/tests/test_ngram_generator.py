@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
+
 # https://docs.python.org/3/library/unittest.html
+
+
 from unittest import TestCase
 
 from languagemodeling.ngram import NGram, NGramGenerator

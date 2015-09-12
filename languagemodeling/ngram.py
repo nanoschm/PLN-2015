@@ -1,7 +1,11 @@
 # https://docs.python.org/3/library/collections.html
 from collections import defaultdict
 from numpy import log2
+from random import random
+from math import fsum
+import numpy as np
 
+import scipy.stats as st
 class NGram(object):
 
     def __init__(self, n, sents):
@@ -11,7 +15,7 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
-
+        self.probs = probs = defaultdict(lambda : defaultdict(int))
         for sent in sents:
             for i in range(n-1):
                 sent = ["<s>"] + sent
@@ -20,6 +24,8 @@ class NGram(object):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
+                probs[ngram[:-1]][ngram[-1]] += 1.0
+
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -77,17 +83,65 @@ class NGramGenerator:
         """
         model -- n-gram model.
         """
-        ngram = model
-        self.counts = counts = defaultdict(int)
+        self.ngram = model
 
-        start = ["<n>"] * n-1
+        for elem in self.ngram.probs.items():
+            count = 0
+            for o_elem in elem[1].items():
+                count += o_elem[1]
+            for o_elem in elem[1].items():
+                elem[1][o_elem[0]] = float(o_elem[1])/float(count)
+
+        self.probs = model.probs
+
+
 
     def generate_sent(self):
         """Randomly generate a sentence."""
+        n = self.ngram.n
+        sent = ''
+        for i in range(n-1):
+            sent = ["<s>"] + sent      
+        while(1):
+            sent = sent + self.generate_token(sent)
+            if sent[-1]=="</s>":
+                break
+        
+        return sent
 
- 
     def generate_token(self, prev_tokens=None):
         """Randomly generate a token, given prev_tokens.
  
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
+
+
+        #generamos un numero aleatorio entre 0 y 1.
+
+        p_random = random()
+        if not prev_tokens:
+            prev_tokens = tuple()
+        #Buscamos el Dicciionario de Probabilidad de la palabra siguiente a prev_tokens
+        p_diccionario = self.ngram.probs[prev_tokens] 
+        xk = [i for i in range(len(p_diccionario.items()))]
+        
+        xk, yk = p_diccionario.keys(), p_diccionario.values()
+        word_prob = [(xk[i], fsum(yk[0:i])) for i in range(len(xk))]
+        length_wp = len(word_prob)
+        print word_prob, length_wp
+        for i in range(length_wp):
+            if word_prob[length_wp-i-1][1] < p_random and i < length_wp:
+                index = length_wp-i+1
+                break
+            elif word_prob[length_wp-i-1][1] > p_random and i == length_wp - 1:
+                index = 0
+                break
+
+        word = p_diccionario.keys()[index]
+
+        return word
+
+    def create_distribution(self, xk, pk):
+        rv = st.rv_discrete(xk[0], xk[-1], values=(xk, pk)) 
+        return rv 
+

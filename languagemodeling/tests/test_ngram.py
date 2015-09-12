@@ -1,8 +1,5 @@
 # https://docs.python.org/3/library/unittest.html
-<<<<<<< HEAD
 # -*- coding: utf-8 -*-
-=======
->>>>>>> 0812b3455c4054f6d47656c8ae31b3b9f71f8ba3
 from unittest import TestCase
 from math import log
 
@@ -21,10 +18,8 @@ class TestNGram(TestCase):
         ngram = NGram(1, self.sents)
 
         counts = {
-<<<<<<< HEAD
-=======
+
             (): 12,
->>>>>>> 0812b3455c4054f6d47656c8ae31b3b9f71f8ba3
             ('el',): 1,
             ('gato',): 1,
             ('come',): 2,
@@ -34,14 +29,10 @@ class TestNGram(TestCase):
             ('la',): 1,
             ('gata',): 1,
             ('salmón',): 1,
-<<<<<<< HEAD
             (): 12,
 
         }
 
-=======
-        }
->>>>>>> 0812b3455c4054f6d47656c8ae31b3b9f71f8ba3
         for gram, c in counts.items():
             self.assertEqual(ngram.count(gram), c)
 
@@ -71,7 +62,8 @@ class TestNGram(TestCase):
             ('salmón', '.'): 1,
         }
         for gram, c in counts.items():
-            self.assertEqual(ngram.count(gram), c)
+            self.assertEqual(ngram.count(gram), 2)
+
 
     def test_cond_prob_1gram(self):
         ngram = NGram(1, self.sents)
