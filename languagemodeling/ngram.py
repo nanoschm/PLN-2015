@@ -84,7 +84,7 @@ class NGramGenerator:
         model -- n-gram model.
         """
         self.ngram = model
-
+        self.probs = model.probs
         for elem in self.ngram.probs.items():
             count = 0
             for o_elem in elem[1].items():
@@ -92,7 +92,7 @@ class NGramGenerator:
             for o_elem in elem[1].items():
                 elem[1][o_elem[0]] = float(o_elem[1])/float(count)
 
-        self.probs = model.probs
+        self.sorted_probs = model.probs
 
 
 
@@ -104,16 +104,13 @@ class NGramGenerator:
             sent = tuple(["<s>"])      
         while(1):
             if n >= 2:
-                print sent
-                print sent[-1*n:]
                 sent = sent + tuple([self.generate_token(sent[-1*n+1:])])
             else:
                 sent = sent + tuple([self.generate_token()])
             if sent[-1]=="</s>":
                 break
         
-        print sent
-        return sent
+        return sent[1:-1]
 
     def generate_token(self, prev_tokens=None):
         """Randomly generate a token, given prev_tokens.
@@ -133,19 +130,13 @@ class NGramGenerator:
         xk, yk = p_diccionario.keys(), p_diccionario.values()
         word_prob = [(xk[i], fsum(yk[0:i])) for i in range(len(xk))]
         length_wp = len(word_prob)
-        print word_prob
         for i in range(length_wp):
             if (word_prob[length_wp-i-1])[1] < p_random and i < length_wp:
                 index = length_wp-i-1
-                print "a"
                 break
             elif word_prob[length_wp-i-1][1] > p_random and i == length_wp - 1:
                 index = 0
-                print "b"
                 break
-            else:
-                pass
-                print "c"
         
         word = p_diccionario.keys()[index]
 
