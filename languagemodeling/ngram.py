@@ -99,14 +99,20 @@ class NGramGenerator:
     def generate_sent(self):
         """Randomly generate a sentence."""
         n = self.ngram.n
-        sent = ''
+        sent = tuple([])
         for i in range(n-1):
-            sent = ["<s>"] + sent      
+            sent = tuple(["<s>"])      
         while(1):
-            sent = sent + self.generate_token(sent)
+            if n >= 2:
+                print sent
+                print sent[-1*n:]
+                sent = sent + tuple([self.generate_token(sent[-1*n+1:])])
+            else:
+                sent = sent + tuple([self.generate_token()])
             if sent[-1]=="</s>":
                 break
         
+        print sent
         return sent
 
     def generate_token(self, prev_tokens=None):
@@ -115,28 +121,32 @@ class NGramGenerator:
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
 
-
         #generamos un numero aleatorio entre 0 y 1.
 
         p_random = random()
         if not prev_tokens:
-            prev_tokens = tuple()
+            prev_tokens = tuple([])
         #Buscamos el Dicciionario de Probabilidad de la palabra siguiente a prev_tokens
-        p_diccionario = self.ngram.probs[prev_tokens] 
+        p_diccionario = self.ngram.probs[prev_tokens]
         xk = [i for i in range(len(p_diccionario.items()))]
         
         xk, yk = p_diccionario.keys(), p_diccionario.values()
         word_prob = [(xk[i], fsum(yk[0:i])) for i in range(len(xk))]
         length_wp = len(word_prob)
-        print word_prob, length_wp
+        print word_prob
         for i in range(length_wp):
-            if word_prob[length_wp-i-1][1] < p_random and i < length_wp:
-                index = length_wp-i+1
+            if (word_prob[length_wp-i-1])[1] < p_random and i < length_wp:
+                index = length_wp-i-1
+                print "a"
                 break
             elif word_prob[length_wp-i-1][1] > p_random and i == length_wp - 1:
                 index = 0
+                print "b"
                 break
-
+            else:
+                pass
+                print "c"
+        
         word = p_diccionario.keys()[index]
 
         return word
