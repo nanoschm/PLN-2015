@@ -117,7 +117,7 @@ class NGramGenerator(object):
             if sent[-1]=="</s>":
                 break
         
-        return sent[1:-1]
+        return sent[n-1:-1]
 
     def generate_token(self, prev_tokens=None):
         """Randomly generate a token, given prev_tokens.
@@ -149,13 +149,13 @@ class NGramGenerator(object):
 
         return word
 
-class AddOneNgram(NGram):
+class AddOneNGram(NGram):
     
     def V(self):
         """Size of the vocabulary.
         """ 
         set_of_words = set(["</s>"])
-        for sent in self.sents():
+        for sent in self.sents:
             set_of_words = set_of_words.union(set(sent))
 
         return len(set_of_words)
@@ -170,7 +170,7 @@ class AddOneNgram(NGram):
         assert len(prev_tokens) == n - 1
         tokens = tuple(prev_tokens) + tuple([token])
         try:    
-            prob = (float(self.counts[tuple(tokens)]) + 1) / (self.counts[tuple(prev_tokens)] + self.V)
+            prob = (float(self.counts[tuple(tokens)]) + 1) / (self.counts[tuple(prev_tokens)] + self.V())
         except ZeroDivisionError:
             prob = 0.0
         return prob
