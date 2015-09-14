@@ -4,8 +4,8 @@ from numpy import log2
 from random import random
 from math import fsum
 import numpy as np
+from functools import partial
 
-import scipy.stats as st
 class NGram(object):
 
     def __init__(self, n, sents):
@@ -15,7 +15,8 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
-        self.probs = probs = defaultdict(lambda : defaultdict(int))
+        self.probs = probs = defaultdict(partial(defaultdict, int))
+        self.sents = sents
         for sent in sents:
             for i in range(n-1):
                 sent = ["<s>"] + sent
@@ -25,6 +26,13 @@ class NGram(object):
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
                 probs[ngram[:-1]][ngram[-1]] += 1.0
+
+
+    def __getstate__(self):
+        """ This is called before pickling. """
+        state = self.__dict__.copy()
+        del state['sents']
+        return state
 
 
     def count(self, tokens):
@@ -44,7 +52,7 @@ class NGram(object):
             prev_tokens = ["<s>"] + prev_tokens
         assert len(prev_tokens) == n - 1
         tokens = tuple(prev_tokens) + tuple([token])
-        try:
+        try:    
             prob = float(self.counts[tuple(tokens)]) / self.counts[tuple(prev_tokens)]
         except ZeroDivisionError:
             prob = 0.0
@@ -77,7 +85,7 @@ class NGram(object):
 
         return log_prob
 
-class NGramGenerator:
+class NGramGenerator(object):
  
     def __init__(self, model):
         """
@@ -92,7 +100,6 @@ class NGramGenerator:
             for o_elem in elem[1].items():
                 elem[1][o_elem[0]] = float(o_elem[1])/float(count)
 
-        self.sorted_probs = model.probs
 
 
 
@@ -101,7 +108,7 @@ class NGramGenerator:
         n = self.ngram.n
         sent = tuple([])
         for i in range(n-1):
-            sent = tuple(["<s>"])      
+            sent = sent + tuple(["<s>"])
         while(1):
             if n >= 2:
                 sent = sent + tuple([self.generate_token(sent[-1*n+1:])])
@@ -127,7 +134,8 @@ class NGramGenerator:
         p_diccionario = self.ngram.probs[prev_tokens]
         xk = [i for i in range(len(p_diccionario.items()))]
         
-        xk, yk = p_diccionario.keys(), p_diccionario.values()
+        xk, yk = list(p_diccionario.keys()), list(p_diccionario.values())
+        # Creamos una lista con indice del elemento en p_diccionario, y el valor acumulado.
         word_prob = [(xk[i], fsum(yk[0:i])) for i in range(len(xk))]
         length_wp = len(word_prob)
         for i in range(length_wp):
@@ -137,12 +145,32 @@ class NGramGenerator:
             elif word_prob[length_wp-i-1][1] > p_random and i == length_wp - 1:
                 index = 0
                 break
-        
-        word = p_diccionario.keys()[index]
+        word = xk[index]
 
         return word
 
-    def create_distribution(self, xk, pk):
-        rv = st.rv_discrete(xk[0], xk[-1], values=(xk, pk)) 
-        return rv 
+class AddOneNgram(NGram):
+    
+    def V(self):
+        """Size of the vocabulary.
+        """ 
+        set_of_words = set(["</s>"])
+        for sent in self.sents():
+            set_of_words = set_of_words.union(set(sent))
 
+        return len(set_of_words)
+
+    def cond_prob(self, token, prev_tokens=None):
+        n = self.n
+        if not prev_tokens:     
+            prev_tokens = []
+
+        for i in range(n - len(prev_tokens) - 1):
+            prev_tokens = ["<s>"] + prev_tokens
+        assert len(prev_tokens) == n - 1
+        tokens = tuple(prev_tokens) + tuple([token])
+        try:    
+            prob = (float(self.counts[tuple(tokens)]) + 1) / (self.counts[tuple(prev_tokens)] + self.V)
+        except ZeroDivisionError:
+            prob = 0.0
+        return prob

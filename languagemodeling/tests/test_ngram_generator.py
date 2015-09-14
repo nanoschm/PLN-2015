@@ -100,7 +100,7 @@ class TestNGramGenerator(TestCase):
             'el gato come salmón .',
             'la gata come pescado .',
         ]
-
+        
         for i in range(100):
             sent = generator.generate_sent()
             self.assertTrue(' '.join(sent) in sents, sent)

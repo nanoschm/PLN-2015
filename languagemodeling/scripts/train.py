@@ -22,7 +22,7 @@ if __name__ == '__main__':
     opts = docopt(__doc__)
 
     # load the data
-    corpus = PlaintextCorpusReader('.', 'lavoz')
+    corpus = PlaintextCorpusReader('.', 'raw.txt')
 
     sents = corpus.sents()
 
@@ -30,9 +30,9 @@ if __name__ == '__main__':
     n = int(opts['-n'])
     
     model = NGram(n, sents)
-    generate = NGramGenerator(model)
-    # save it
+     # save it
     filename = opts['-o']
     f = open(filename, 'wb')
-    #pickle.dump(model, f)
+    pickle.dump(model, f)
     f.close()
+
