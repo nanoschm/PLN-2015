@@ -178,3 +178,15 @@ class AddOneNGram(NGram):
         except ZeroDivisionError:
             prob = 0.0
         return prob
+
+class InterpolatedNGram(AddOneNGram):
+
+    def __init__(self, n, sents, gamma=None, addone=True):
+        """
+        n -- order of the model.
+        sents -- list of sentences, each one being a list of tokens.
+        gamma -- interpolation hyper-parameter (if not given, estimate using
+            held-out data).
+        addone -- whether to use addone smoothing (default: True).
+        """
+    

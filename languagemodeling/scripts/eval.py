@@ -22,19 +22,21 @@ from nltk.corpus import PlaintextCorpusReader
 from languagemodeling.ngram import NGramGenerator
 
 def log_prob(model, t_sents):
-    number_of_words = model.V()
     prob = 0.0
+    count_tokens = 0
     for sent in t_sents:
         s_prob = model.sent_log_prob(sent)
         prob += s_prob
+        count_tokens += len(sent)
+    return prob, count_tokens
 
-    return float(prob)/number_of_words
-def log_probability(model):
+def cross_entropy(log_prob, m):
 
-def cross_entropy(model):
+    return -1*log_prob/float(m)
 
+def perplexity(cross_entropy):
 
-
+    return pow(2, cross_entropy)
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
@@ -45,11 +47,11 @@ if __name__ == '__main__':
     corpus_10 = PlaintextCorpusReader('.', 'Corpus_10.0')
     test_sents = corpus.sents()
 
-    log_prob(model, test_sents)
+    log_prob, m = log_prob(model, test_sents)
+    cross_entropy = cross_entropy(log_prob, m)
+    perplexity = perplexity(cross_entropy)
 
-
-    #perplexiti
-
+    print ("the perplexity is %s", str(perplexity))
 
 
 
