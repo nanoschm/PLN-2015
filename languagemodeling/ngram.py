@@ -25,6 +25,7 @@ class NGram(object):
                 ngram = tuple(sent[i: i + n])
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
+                # Armamos lo que va a ser el futuro diccionario de probabilidades en NGramGenerator
                 probs[ngram[:-1]][ngram[-1]] += 1.0
 
 
@@ -100,9 +101,6 @@ class NGramGenerator(object):
             for o_elem in elem[1].items():
                 elem[1][o_elem[0]] = float(o_elem[1])/float(count)
 
-
-
-
     def generate_sent(self):
         """Randomly generate a sentence."""
         n = self.ngram.n
@@ -151,6 +149,12 @@ class NGramGenerator(object):
 
 class AddOneNGram(NGram):
     
+    def __getstate__(self):
+        """ This is called before pickling. """
+        state = self.__dict__.copy()
+        del state['sents']
+        return state
+
     def V(self):
         """Size of the vocabulary.
         """ 

@@ -30,13 +30,14 @@ if __name__ == '__main__':
 
     sents = corpus.sents()
     n = int(opts['-n'])
-    m = int(opts['m'])
-    if m:
+    try:
+      m = int(opts['-m'])
       #train the addone model
       model = AddOneNGram(n, sents)
-    else:
-      # train the simple model
+    except KeyError:
       model = NGram(n, sents)
+
+
      # save it
     filename = opts['-o']
     f = open(filename, 'wb')
