@@ -62,7 +62,7 @@ class TestNGram(TestCase):
             ('salmón', '.'): 1,
         }
         for gram, c in counts.items():
-            self.assertEqual(ngram.count(gram), 2)
+            self.assertEqual(ngram.count(gram), c)
 
 
     def test_cond_prob_1gram(self):
@@ -128,6 +128,7 @@ class TestNGram(TestCase):
             'la la la': log2(1 / 6.0) + 3 * log2(1 / 12.0),
         }
         for sent, prob in sents.items():
+            print (sent)
             self.assertAlmostEqual(ngram.sent_log_prob(sent.split()), prob, msg=sent)
 
     def test_sent_log_prob_2gram(self):

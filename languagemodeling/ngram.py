@@ -2,7 +2,7 @@
 from collections import defaultdict
 from numpy import log2
 from random import random
-from math import fsum
+from math import fsum, log
 import numpy as np
 from functools import partial
 
@@ -28,7 +28,6 @@ class NGram(object):
                 # Armamos lo que va a ser el futuro diccionario de probabilidades en NGramGenerator
                 probs[ngram[:-1]][ngram[-1]] += 1.0
 
-
     def __getstate__(self):
         """ This is called before pickling. """
         state = self.__dict__.copy()
@@ -52,11 +51,16 @@ class NGram(object):
         for i in range(n - len(prev_tokens) - 1):
             prev_tokens = ["<s>"] + prev_tokens
         assert len(prev_tokens) == n - 1
-        tokens = tuple(prev_tokens) + tuple([token])
-        try:    
+        tokens = (list(prev_tokens)) + [(token)]
+
+        try:
+            print ("NUM" + str(self.counts[tuple(tokens)]))
+            print ("DEN" + str(self.counts[tuple(prev_tokens)]))
             prob = float(self.counts[tuple(tokens)]) / self.counts[tuple(prev_tokens)]
+            print ("a")
         except ZeroDivisionError:
-            prob = 0.0
+            print("b")
+            prob = float(0.0)
         return prob
 
     def sent_prob(self, sent):
@@ -66,13 +70,15 @@ class NGram(object):
         """
         n = self.n
         prob = 1.0
-        n_sent = tuple(list(sent) + ["</s>"])
-        for i in range(len(n_sent)):
-            token = n_sent[i]
-            r = max(0,i-n+1)
-            prev_tokens = tuple(n_sent[r:i])
-            prob = prob * self.cond_prob(token=token, prev_tokens=prev_tokens)
 
+        n_sent = (["<s>"] * (n - 1) + list(sent) + ["</s>"]) 
+        for i in range(n-1,len(n_sent)):
+            token = (n_sent[i])
+            r = max(0,i-n+1)
+            prev_tokens = (n_sent[r:i])
+
+            prob = float(prob) * float(self.cond_prob(token=token, prev_tokens=prev_tokens))
+            
         return prob
 
     def sent_log_prob(self, sent):
@@ -80,11 +86,22 @@ class NGram(object):
  
         sent -- the sentence as a list of tokens.
         """
-        prob = self.sent_prob(sent)
-        log_prob = log2(prob)
+        n = self.n
+        prob = 0.0
+        n_sent = ["<s>"] * (n - 1) + list(sent) + ["</s>"]
+        print (len(n_sent))
+        for i in range (len(n_sent)-n+1):
+            token = ((n_sent[i+n-1]))
+            r = max(0,i-n+1)
+            prev_tokens = (n_sent[i:i+n-1])
+            print (token) 
+            print (prev_tokens)
+            try:
+                prob = prob + log((self.cond_prob(token=token, prev_tokens=prev_tokens)),2)
+            except ValueError:
+                prob = float('-inf')
 
-
-        return log_prob
+        return prob
 
 class NGramGenerator(object):
  
@@ -179,7 +196,7 @@ class AddOneNGram(NGram):
             prob = 0.0
         return prob
 
-class InterpolatedNGram(AddOneNGram):
+class InterpolatedNGram(NGram):
 
     def __init__(self, n, sents, gamma=None, addone=True):
         """
@@ -189,4 +206,53 @@ class InterpolatedNGram(AddOneNGram):
             held-out data).
         addone -- whether to use addone smoothing (default: True).
         """
+        super(InterpolatedNGram, self).__init__(n, sents)
+        if gamma:
+            self.gamma = gamma
+        else:
+            self.gamma = 1
+        
+        self.list_of_counts = list()
+        for i in range(1,n+1):
+            ngram = NGram(i, sents).counts
+            self.list_of_counts.append(ngram)
+        self.counts = self.list_of_counts[n-1]
+    def get_lambdas(self, tokens):
+        n = self.n
+        lambda_list = list()
+        for i in range(1,n+1):
+            esc = 1 - sum(lambda_list[1:i-1])
+            dict_of_counts = self.list_of_counts[len(tokens[i:n-i])]
+            count = dict_of_counts[tokens[i:n-i]]
+            actual_lambda = esc * ( count / (count + self.gamma))
+
+        return lambda_list
+
+
+    def cond_prob(self, token, prev_tokens=None):
+        n = self.n
+        if not prev_tokens:     
+            prev_tokens = []
+
+        for i in range(n - len(prev_tokens) - 1):
+            prev_tokens = ["<s>"] + prev_tokens
+        assert len(prev_tokens) == n - 1
+        tokens = tuple(prev_tokens) + tuple([token])
+
+        lambda_list = self.get_lambdas(tokens)
+
+        prob = 1.0
+        for i in range(len(lambda_list)):
+
+            dict_of_counts = self.list_of_counts[len(tokens[:n-i])]
+            num_qml = dict_of_counts[tokens[:n-i]]
+            dict_of_counts2 = self.list_of_counts[len(tokens[:n-i])]
+            den_qml = dict_of_counts2[tokens[:n-(i+1)]]
+            prob = prob * lambda_list[i] * float(num_qml)/den_qml
+
+        return prob
+
+
+
+
     
