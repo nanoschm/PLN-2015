@@ -17,6 +17,7 @@ class NGram(object):
         self.counts = counts = defaultdict(int)
         self.probs = probs = defaultdict(partial(defaultdict, int))
         self.sents = sents
+        self.next = next = defaultdict(list())
         for sent in sents:
             for i in range(n-1):
                 sent = ["<s>"] + sent
@@ -27,6 +28,8 @@ class NGram(object):
                 counts[ngram[:-1]] += 1
                 # Armamos lo que va a ser el futuro diccionario de probabilidades en NGramGenerator
                 probs[ngram[:-1]][ngram[-1]] += 1.0
+                next[ngram[:-1]].append(NGram[-1])
+
 
     def __getstate__(self):
         """ This is called before pickling. """
@@ -230,15 +233,7 @@ class InterpolatedNGram(NGram):
             self.gamma = gamma
 
         self.counts = defaultdict(int)
-        if not addone:
-            for i in range(1,n+1):
-                ngram = NGram(i, self.sents).counts
-                self.counts.update(ngram)
 
-        else:
-            for i in range(1,n+1):
-                ngram = AddOneNGram(i, self.sents).counts
-                self.counts.update(ngram)
 
 
     def get_lambdas(self, tokens):
@@ -299,3 +294,114 @@ class InterpolatedNGram(NGram):
     def perplexity(self, cross_entropy):
 
         return pow(2, cross_entropy)
+
+class BackOffNGram(NGram):
+ 
+    def __init__(self, n, sents, beta=None, addone=True):
+        """
+        Back-off NGram model with discounting as described by Michael Collins.
+ 
+        n -- order of the model.
+        sents -- list of sentences, each one being a list of tokens.
+        beta -- discounting hyper-parameter (if not given, estimate using
+            held-out data).
+        addone -- whether to use addone smoothing (default: True).
+        """
+
+        self.n = n
+        self.sents = sents
+
+        #cambiar para usar barrido, ¿Que debería calcular? FIX
+
+
+        if not beta:
+            self.held_out = sents[len(sents)-num_held_out:]
+            self.sents = sents[:len(sents)-num_held_out]
+            lista_betas_perplexity = list()
+            lista_parametros = [i*0.1 for i in range(1,11)]
+            print (lista_parametros)
+            for i in range(len(lista_parametros)):
+                backoff_model = InterpolatedNGram(n, self.sents, beta=lista_parametros[i], addone=addone)
+                
+                #Pasar esto a una clase.
+                log_prob, m = backoff_model.log_prob(self.held_out)
+                cross_entropy = backoff_model.cross_entropy(log_prob, m)
+                perplexity = backoff_model.perplexity(cross_entropy)
+                # ---
+
+                lista_gammas_perplexity.append(perplexity)
+            index = lista_betas_perplexity.index(min(lista_betas_perplexity))
+            self.beta = lista_parametros[index]
+            print ("Beta = ", self.beta )
+        else:
+            self.beta = beta
+
+        if not addone:
+            for i in range(1,n+1):
+                ngram = NGram(i, self.sents).counts
+                self.counts.update(ngram)
+
+        else:
+            for i in range(2,n+1):
+                ngram = NGram(i, self.sents).counts
+                self.counts.update(ngram)
+            unigram = AddOneNGram(1, self.sents).counts
+            self.counts.update(unigram)
+
+        self.next = dict(self.next)
+        self.counts = dict(self.counts)
+
+    def prob_aux_1(self, t_token, t_prev_tokens):
+
+        t_tokens = t_token + t_prev_tokens
+        c_estrella = self.counts(t_tokens) - self.beta
+        return float(c_estrella) / float(self.counts(prev_tokens))
+
+    def cond_prob(self, token, prev_tokens):
+        n = self.n
+        if not prev_tokens:     
+            prev_tokens = []
+
+        for i in range(n - len(prev_tokens) - 1):
+            prev_tokens = ["<s>"] + prev_tokens
+        assert len(prev_tokens) == n - 1
+        t_token = tuple([token])
+        t_prev_tokens = tuple(prev_tokens)
+        t_tokens = t_token + t_prev_tokens
+        
+        try:
+            return self.prob_aux_1(t_token, t_prev_tokens)
+        except KeyError:
+            prob = self.alpha(t_tokens) * self.cond_prob(t_prev_tokens[1:], t_token ) / self.denom(t_prev_tokens)
+
+
+
+    def A(self, tokens):
+        """Set of words with counts > 0 for a k-gram with 0 < k < n.
+ 
+        tokens -- the k-gram tuple.
+        """
+        return set(self.next[tokens])
+ 
+    def alpha(self, tokens):
+        """Missing probability mass for a k-gram with 0 < k < n.
+ 
+        tokens -- the k-gram tuple.
+        """
+
+        list_of_next_words = self.A(tokens)
+
+        alpha = 1.0
+        for w in list_of_next_words:
+            alpha = alpha - self.cond_prob(tuple(w), tokens)
+
+    def denom(self, tokens):
+        """Normalization factor for a k-gram with 0 < k < n.
+ 
+        tokens -- the k-gram tuple.
+        """
+
+        list_of_next_words = self.A(tokens)
+        denom = 1.0
+        for w in list_of_next_words:
+            denom = denom - self.cond_prob(tuple(w), tokens[1:])
