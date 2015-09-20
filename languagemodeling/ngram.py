@@ -2,7 +2,7 @@
 from collections import defaultdict
 from numpy import log2
 from random import random
-from math import fsum, log
+from math import fsum, log, floor
 import numpy as np
 from functools import partial
 
@@ -54,12 +54,8 @@ class NGram(object):
         tokens = (list(prev_tokens)) + [(token)]
 
         try:
-            print ("NUM" + str(self.counts[tuple(tokens)]))
-            print ("DEN" + str(self.counts[tuple(prev_tokens)]))
             prob = float(self.counts[tuple(tokens)]) / self.counts[tuple(prev_tokens)]
-            print ("a")
         except ZeroDivisionError:
-            print("b")
             prob = float(0.0)
         return prob
 
@@ -89,13 +85,10 @@ class NGram(object):
         n = self.n
         prob = 0.0
         n_sent = ["<s>"] * (n - 1) + list(sent) + ["</s>"]
-        print (len(n_sent))
         for i in range (len(n_sent)-n+1):
             token = ((n_sent[i+n-1]))
             r = max(0,i-n+1)
             prev_tokens = (n_sent[i:i+n-1])
-            print (token) 
-            print (prev_tokens)
             try:
                 prob = prob + log((self.cond_prob(token=token, prev_tokens=prev_tokens)),2)
             except ValueError:
@@ -117,6 +110,7 @@ class NGramGenerator(object):
                 count += o_elem[1]
             for o_elem in elem[1].items():
                 elem[1][o_elem[0]] = float(o_elem[1])/float(count)
+
 
     def generate_sent(self):
         """Randomly generate a sentence."""
@@ -206,25 +200,57 @@ class InterpolatedNGram(NGram):
             held-out data).
         addone -- whether to use addone smoothing (default: True).
         """
-        super(InterpolatedNGram, self).__init__(n, sents)
-        if gamma:
-            self.gamma = gamma
+        self.n = n
+        a = len(sents)
+        num_held_out = floor((len(sents)) * 0.1)
+        if num_held_out == 0:
+            num_held_out = 1
+            
+        if not gamma:
+            self.held_out = sents[len(sents)-num_held_out:]
+            self.sents = sents[:len(sents)-num_held_out]
+            lista_gammas_perplexity = list()
+            lista_parametros = [i*100 for i in range(1,3)]
+            print (lista_parametros)
+            for i in range(len(lista_parametros)):
+                interp_model = InterpolatedNGram(n, self.sents, gamma=lista_parametros[i], addone=addone)
+                
+                #Pasar esto a una clase.
+                log_prob, m = interp_model.log_prob(self.held_out)
+                cross_entropy = interp_model.cross_entropy(log_prob, m)
+                perplexity = interp_model.perplexity(cross_entropy)
+                # ---
+
+                lista_gammas_perplexity.append(perplexity)
+            index = lista_gammas_perplexity.index(min(lista_gammas_perplexity))
+            self.gamma = lista_parametros[index]
+            print ("Gamma = ", self.gamma )
         else:
-            self.gamma = 1
-        
-        self.list_of_counts = list()
-        for i in range(1,n+1):
-            ngram = NGram(i, sents).counts
-            self.list_of_counts.append(ngram)
-        self.counts = self.list_of_counts[n-1]
+            self.sents = sents
+            self.gamma = gamma
+
+        self.counts = defaultdict(int)
+        if not addone:
+            for i in range(1,n+1):
+                ngram = NGram(i, self.sents).counts
+                self.counts.update(ngram)
+
+        else:
+            for i in range(1,n+1):
+                ngram = AddOneNGram(i, self.sents).counts
+                self.counts.update(ngram)
+
+
     def get_lambdas(self, tokens):
         n = self.n
         lambda_list = list()
-        for i in range(1,n+1):
-            esc = 1 - sum(lambda_list[1:i-1])
-            dict_of_counts = self.list_of_counts[len(tokens[i:n-i])]
-            count = dict_of_counts[tokens[i:n-i]]
+        for i in range(1,n):
+            esc = 1 - sum(lambda_list[0:i-1])
+            count = self.counts[tokens[i:n-i]]
             actual_lambda = esc * ( count / (count + self.gamma))
+            lambda_list.append(actual_lambda)
+
+        lambda_list.append(1-(sum(lambda_list)))
 
         return lambda_list
 
@@ -238,21 +264,38 @@ class InterpolatedNGram(NGram):
             prev_tokens = ["<s>"] + prev_tokens
         assert len(prev_tokens) == n - 1
         tokens = tuple(prev_tokens) + tuple([token])
-
+        print ("tokens...")
+        print (tokens)
         lambda_list = self.get_lambdas(tokens)
+        print ("lambda list...")
+        print (lambda_list) 
 
         prob = 1.0
         for i in range(len(lambda_list)):
 
-            dict_of_counts = self.list_of_counts[len(tokens[:n-i])]
-            num_qml = dict_of_counts[tokens[:n-i]]
-            dict_of_counts2 = self.list_of_counts[len(tokens[:n-i])]
-            den_qml = dict_of_counts2[tokens[:n-(i+1)]]
-            prob = prob * lambda_list[i] * float(num_qml)/den_qml
+            num_qml = self.counts[tokens[:n-i]]
+            den_qml = self.counts[tokens[:n-(i+1)]]
+            try:
+                prob = prob * lambda_list[i] * float(num_qml)/den_qml
+            except ZeroDivisionError:
+                prob = 0.0
 
         return prob
 
 
+    def log_prob(self, t_sents):
+        prob = 0.0
+        count_tokens = 0
+        for sent in self.sents:
+            s_prob = self.sent_log_prob(sent)
+            prob += s_prob
+            count_tokens += len(sent)
+        return prob, count_tokens
 
+    def cross_entropy(self, log_prob, m):
 
-    
+        return -1*log_prob/float(m)
+
+    def perplexity(self, cross_entropy):
+
+        return pow(2, cross_entropy)
