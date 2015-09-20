@@ -17,7 +17,7 @@ class NGram(object):
         self.counts = counts = defaultdict(int)
         self.probs = probs = defaultdict(partial(defaultdict, int))
         self.sents = sents
-        self.next = next = defaultdict(list())
+        self.next = next = defaultdict(list)
         for sent in sents:
             for i in range(n-1):
                 sent = ["<s>"] + sent
@@ -28,7 +28,7 @@ class NGram(object):
                 counts[ngram[:-1]] += 1
                 # Armamos lo que va a ser el futuro diccionario de probabilidades en NGramGenerator
                 probs[ngram[:-1]][ngram[-1]] += 1.0
-                next[ngram[:-1]].append(NGram[-1])
+                next[ngram[:-1]].append(ngram[-1])
 
 
     def __getstate__(self):
@@ -232,8 +232,18 @@ class InterpolatedNGram(NGram):
             self.sents = sents
             self.gamma = gamma
 
-        self.counts = defaultdict(int)
+      
+        if not addone:
+            for i in range(1,n+1):
+                ngram = NGram(i, self.sents).counts
+                self.counts.update(ngram)
 
+        else:
+            for i in range(2,n+1):
+                ngram = NGram(i, self.sents).counts
+                self.counts.update(ngram)
+            unigram = AddOneNGram(1, self.sents).counts
+            self.counts.update(unigram)
 
 
     def get_lambdas(self, tokens):
@@ -278,22 +288,7 @@ class InterpolatedNGram(NGram):
         return prob
 
 
-    def log_prob(self, t_sents):
-        prob = 0.0
-        count_tokens = 0
-        for sent in self.sents:
-            s_prob = self.sent_log_prob(sent)
-            prob += s_prob
-            count_tokens += len(sent)
-        return prob, count_tokens
 
-    def cross_entropy(self, log_prob, m):
-
-        return -1*log_prob/float(m)
-
-    def perplexity(self, cross_entropy):
-
-        return pow(2, cross_entropy)
 
 class BackOffNGram(NGram):
  
@@ -307,12 +302,14 @@ class BackOffNGram(NGram):
             held-out data).
         addone -- whether to use addone smoothing (default: True).
         """
-
         self.n = n
         self.sents = sents
 
         #cambiar para usar barrido, ¿Que debería calcular? FIX
 
+        num_held_out = floor((len(sents)) * 0.1)
+        if num_held_out == 0:
+            num_held_out = 1
 
         if not beta:
             self.held_out = sents[len(sents)-num_held_out:]
@@ -321,7 +318,7 @@ class BackOffNGram(NGram):
             lista_parametros = [i*0.1 for i in range(1,11)]
             print (lista_parametros)
             for i in range(len(lista_parametros)):
-                backoff_model = InterpolatedNGram(n, self.sents, beta=lista_parametros[i], addone=addone)
+                backoff_model = BackOffNGram(n, self.sents, beta=lista_parametros[i], addone=addone)
                 
                 #Pasar esto a una clase.
                 log_prob, m = backoff_model.log_prob(self.held_out)
@@ -336,17 +333,28 @@ class BackOffNGram(NGram):
         else:
             self.beta = beta
 
+        self.counts = defaultdict(int)
+        self.next = defaultdict(list)   
         if not addone:
             for i in range(1,n+1):
-                ngram = NGram(i, self.sents).counts
-                self.counts.update(ngram)
+                ngram = NGram(i, self.sents)
+                ngram_c = ngram.counts
+                ngram_n = ngram.next
+                self.counts.update(ngram_c)
+                self.next.update(ngram_n)
 
         else:
             for i in range(2,n+1):
-                ngram = NGram(i, self.sents).counts
-                self.counts.update(ngram)
-            unigram = AddOneNGram(1, self.sents).counts
-            self.counts.update(unigram)
+                ngram = NGram(i, self.sents)               
+                ngram_c = NGram(i, self.sents).counts
+                ngram_n = ngram.next
+                self.counts.update(ngram_c)
+                self.next.update(ngram_n)
+            unigram = AddOneNGram(1, self.sents)
+            unigram_c = unigram.couts
+            unigram_n = unigram.next
+            self.counts.update(unigram_c)
+            self.next.update(unigram_n)
 
         self.next = dict(self.next)
         self.counts = dict(self.counts)
@@ -354,8 +362,7 @@ class BackOffNGram(NGram):
     def prob_aux_1(self, t_token, t_prev_tokens):
 
         t_tokens = t_token + t_prev_tokens
-        c_estrella = self.counts(t_tokens) - self.beta
-        return float(c_estrella) / float(self.counts(prev_tokens))
+
 
     def cond_prob(self, token, prev_tokens):
         n = self.n
@@ -367,10 +374,11 @@ class BackOffNGram(NGram):
         assert len(prev_tokens) == n - 1
         t_token = tuple([token])
         t_prev_tokens = tuple(prev_tokens)
-        t_tokens = t_token + t_prev_tokens
+        t_tokens = t_prev_tokens + t_token 
         
         try:
-            return self.prob_aux_1(t_token, t_prev_tokens)
+            c_estrella = self.counts[t_tokens] - self.beta
+            float(c_estrella) / float(self.counts[prev_tokens])        
         except KeyError:
             prob = self.alpha(t_tokens) * self.cond_prob(t_prev_tokens[1:], t_token ) / self.denom(t_prev_tokens)
 
@@ -405,3 +413,20 @@ class BackOffNGram(NGram):
         denom = 1.0
         for w in list_of_next_words:
             denom = denom - self.cond_prob(tuple(w), tokens[1:])
+
+    def log_prob(self, t_sents):
+        prob = 0.0
+        count_tokens = 0
+        for sent in self.sents:
+            s_prob = self.sent_log_prob(sent)
+            prob += s_prob
+            count_tokens += len(sent)
+        return prob, count_tokens
+
+    def cross_entropy(self, log_prob, m):
+
+        return -1*log_prob/float(m)
+
+    def perplexity(self, cross_entropy):
+
+        return pow(2, cross_entropy)
