@@ -358,30 +358,47 @@ class BackOffNGram(NGram):
         if not prev_tokens:     
             prev_tokens = []
 
-        
+        if isinstance(token, tuple):
+            t_token = token
+        else:
+            t_token = tuple([token])
         if len(prev_tokens) == 1:
+            print ("a")
+
+            t_prev_tokens = tuple(prev_tokens)
+            t_tokens = t_prev_tokens + t_token 
             try:
-                c_estrella = self.counts[tuple(token)] - self.beta
+                print ("a1")
+                c_estrella = self.counts[t_tokens] - self.beta
                 prob = float(c_estrella) / float(self.counts[tuple(prev_tokens)])
             except KeyError:
-                prob = 0.0
+                print ("a2")
+                _A = self.A(t_prev_tokens)
+                nexts = self.B(_A)
+                print (self.counts)
+                list_counts_nexts_num = [float(self.counts[tuple(n)]) for n in nexts]
+                list_counts_nexts_den = [float(self.counts[tuple([])]) for n in nexts]
+                print (list_counts_nexts_num)
+                print (self.alpha(t_prev_tokens),((float(self.counts[t_token])),(sum(list_counts_nexts_den))),(((self.counts[()])),sum(list_counts_nexts_num)))   
 
-        else:        
-            if isinstance(token, tuple):
-                t_token = token
-            else:
-                t_token = tuple([token])
+                prob = self.alpha(t_prev_tokens) * ((float(self.counts[t_token])) * (sum(list_counts_nexts_den))) / (((self.counts[()])) * sum(list_counts_nexts_num))   
+        else:
+            print("b")
             t_prev_tokens = tuple(prev_tokens)
             t_tokens = t_prev_tokens + t_token 
             try:
                 c_estrella = self.counts[(t_tokens)] - self.beta
                 prob = float(c_estrella) / float(self.counts[t_prev_tokens])
+                print("b1")
             except KeyError:
+                print("b2")
                 prob = self.alpha(t_prev_tokens)
                 prob = prob * self.cond_prob(t_token, t_prev_tokens[1:])
                 try:
+                    print("bb1")
                     prob = prob / self.denom(t_prev_tokens)
                 except ZeroDivisionError:
+                    print("bb2")
                     prob = 0.0
 
 
@@ -398,6 +415,17 @@ class BackOffNGram(NGram):
             A = []
 
         return A
+
+    def B(self, A):
+
+        ngram = NGram(1, self.sents)
+        aux = list(ngram.counts)
+        for i in A:
+            a = tuple([i])
+            aux = [x for x in aux if x != a and len(x) > 0]
+        set_of_b = aux
+        print ("AUX", aux)
+        return set_of_b
  
     def alpha(self, tokens):
         """Missing probability mass for a k-gram with 0 < k < n.
@@ -407,7 +435,7 @@ class BackOffNGram(NGram):
         list_of_next_words = self.A(tokens)
 
         try:
-            alpha = len(list_of_next_words)*self.beta/self.counts[tokens]
+            alpha = float(len(list_of_next_words))*self.beta/self.counts[tokens]
         except KeyError:
             alpha = 0.0
         return alpha
@@ -421,10 +449,7 @@ class BackOffNGram(NGram):
         list_of_next_words = self.A(tokens)
         denom = 1.0
         list_estrella = list()
-        print (list_of_next_words, "LISTA")
         for w in list_of_next_words:
-            tupla = tokens + tuple([w])
-            print (tupla[1:], tokens[1:])
             list_estrella.append(self.cond_prob(tuple([w]), tokens[1:]))
 
         denom = denom - sum(list_estrella)
