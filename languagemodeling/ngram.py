@@ -5,6 +5,8 @@ from random import random
 from math import fsum, log, floor
 import numpy as np
 from functools import partial
+import operator
+
 
 class NGram(object):
 
@@ -15,9 +17,10 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
-        self.probs = probs = defaultdict(partial(defaultdict, int))
-        self.sents = sents
-        self.next = next = defaultdict(list)
+        #self.probs = probs = defaultdict(partial(defaultdict, int))
+        self.sents = list(sents)
+        print (type(self.sents))
+        #self.next = next = defaultdict(list)
         for sent in sents:
             for i in range(n-1):
                 sent = ["<s>"] + sent
@@ -27,14 +30,18 @@ class NGram(object):
                 counts[ngram] += 1
                 counts[ngram[:-1]] += 1
                 # Armamos lo que va a ser el futuro diccionario de probabilidades en NGramGenerator
-                probs[ngram[:-1]][ngram[-1]] += 1.0
-                next[ngram[:-1]].append(ngram[-1])
+                #probs[ngram[:-1]][ngram[-1]] += 1.0
+                #next[ngram[:-1]].append(ngram[-1])
+        self.counts = dict(self.counts)
+        #self.probs = dict(self.probs)
+        #self.next = dict(self.next)
+
 
 
     def __getstate__(self):
         """ This is called before pickling. """
         state = self.__dict__.copy()
-        del state['sents']
+        #del state['sents']
         return state
 
 
@@ -106,13 +113,32 @@ class NGramGenerator(object):
         model -- n-gram model.
         """
         self.ngram = model
-        self.probs = model.probs
-        for elem in self.ngram.probs.items():
-            count = 0
-            for o_elem in elem[1].items():
-                count += o_elem[1]
-            for o_elem in elem[1].items():
-                elem[1][o_elem[0]] = float(o_elem[1])/float(count)
+        n = model.n
+
+        self.probs = probs = defaultdict(partial(defaultdict, int))
+
+        for sent in model.sents:
+            for i in range(n-1):
+                sent = ["<s>"] + sent
+            sent = sent + ["</s>"]
+            for i in range(len(sent) - n + 1):
+                prev_tokens = tuple(sent[i:i+n-1])
+                print (prev_tokens)
+                token = sent[i+n-1]
+                print (token)
+                if token=="</s>":
+                    print (model.cond_prob(token, prev_tokens))
+                probs[prev_tokens][token] = model.cond_prob(token, prev_tokens)
+
+
+   
+        print (self.probs)
+
+
+
+
+
+
 
 
     def generate_sent(self):
@@ -143,7 +169,7 @@ class NGramGenerator(object):
         if not prev_tokens:
             prev_tokens = tuple([])
         #Buscamos el Dicciionario de Probabilidad de la palabra siguiente a prev_tokens
-        p_diccionario = self.ngram.probs[prev_tokens]
+        p_diccionario = self.probs[prev_tokens]
         xk = [i for i in range(len(p_diccionario.items()))]
         
         xk, yk = list(p_diccionario.keys()), list(p_diccionario.values())
@@ -166,7 +192,7 @@ class AddOneNGram(NGram):
     def __getstate__(self):
         """ This is called before pickling. """
         state = self.__dict__.copy()
-        del state['sents']
+        #del state['sents']
         return state
 
     def V(self):
