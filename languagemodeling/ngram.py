@@ -41,7 +41,7 @@ class NGram(object):
     def __getstate__(self):
         """ This is called before pickling. """
         state = self.__dict__.copy()
-        #del state['sents']
+        del state['sents']
         return state
 
 
@@ -117,23 +117,17 @@ class NGramGenerator(object):
 
         self.probs = probs = defaultdict(partial(defaultdict, int))
 
-        for sent in model.sents:
-            for i in range(n-1):
-                sent = ["<s>"] + sent
-            sent = sent + ["</s>"]
-            for i in range(len(sent) - n + 1):
-                prev_tokens = tuple(sent[i:i+n-1])
-                print (prev_tokens)
-                token = sent[i+n-1]
-                print (token)
+        for ngram in model.counts.keys():
+            if (len(ngram)) == n:
+                prev_tokens = tuple(ngram[:-1])
+                token = ngram[-1]
                 if token=="</s>":
                     print (model.cond_prob(token, prev_tokens))
                 probs[prev_tokens][token] = model.cond_prob(token, prev_tokens)
 
 
    
-        print (self.probs)
-
+        
 
 
 
