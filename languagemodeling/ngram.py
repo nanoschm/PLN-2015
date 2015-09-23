@@ -246,43 +246,46 @@ class InterpolatedNGram(NGram):
 
     def get_lambdas(self, tokens):
         n = self.n
+        largo = len(tokens)
+        print ("LARGO_L: ",largo)
         lambda_list = list()
-        for i in range(1,n):
-            print (tokens)
-            esc = 1 - sum(lambda_list[0:i])
-            count = self.counts[tokens[i-1:n-1]]
-            print (tokens[i:n], "TOKEN")
+        for i in range(1,largo+1):
+            esc = 1 - sum(lambda_list[0:i-1])
+            count = self.counts[tokens[i-1:]]
             actual_lambda = esc * ( count / (count + self.gamma))
             lambda_list.append(actual_lambda)
-
         lambda_list.append(1-(fsum(lambda_list)))
 
         return lambda_list
 
 
     def cond_prob(self, token, prev_tokens=None):
-        n = self.n
+
         if not prev_tokens:     
             prev_tokens = []
-
+        
+        n = self.n
+        largo = 1 + len(prev_tokens)
+        print ("LARGO: ", largo)
         for i in range(n - len(prev_tokens) - 1):
             prev_tokens = ["<s>"] + prev_tokens
         assert len(prev_tokens) == n - 1
         tokens = tuple(prev_tokens) + tuple([token])
-        print ("tokens...")
-        print (tokens)
-        lambda_list = self.get_lambdas(tokens)
+        lambda_list = self.get_lambdas(tuple(prev_tokens))
         print ("lambda list...")
-        print (lambda_list) 
+        print (lambda_list)
 
-        prob = 1.0
+        prob = 0.0
 
         for i in range(len(lambda_list)):
+            num_qml = self.counts[tokens[i:]]
+            den_qml = self.counts[tokens[i:-1]]
+            print ("TOKENS", tokens)
+            print (self.counts[tokens[i:]])
+            print (self.counts[tokens[i:-1]])
 
-            num_qml = self.counts[tokens[:n-i]]
-            den_qml = self.counts[tokens[:n-(i+1)]]
             try:
-                prob = prob * lambda_list[i] * float(num_qml)/den_qml
+                prob = prob + (lambda_list[i] * float(num_qml)/den_qml)
             except ZeroDivisionError:
                 prob = 0.0
 
