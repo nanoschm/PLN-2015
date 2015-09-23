@@ -18,8 +18,7 @@ class NGram(object):
         self.n = n
         self.counts = counts = defaultdict(int)
         #self.probs = probs = defaultdict(partial(defaultdict, int))
-        self.sents = list(sents)
-        print (type(self.sents))
+        self.sents = sents
         #self.next = next = defaultdict(list)
         for sent in sents:
             for i in range(n-1):
@@ -121,8 +120,6 @@ class NGramGenerator(object):
             if (len(ngram)) == n:
                 prev_tokens = tuple(ngram[:-1])
                 token = ngram[-1]
-                if token=="</s>":
-                    print (model.cond_prob(token, prev_tokens))
                 probs[prev_tokens][token] = model.cond_prob(token, prev_tokens)
 
 
@@ -147,6 +144,8 @@ class NGramGenerator(object):
             else:
                 sent = sent + tuple([self.generate_token()])
             if sent[-1]=="</s>":
+                print("D")
+
                 break
         
         return sent[n-1:-1]
@@ -158,27 +157,23 @@ class NGramGenerator(object):
         """
 
         #generamos un numero aleatorio entre 0 y 1.
-
         p_random = random()
         if not prev_tokens:
             prev_tokens = tuple([])
         #Buscamos el Dicciionario de Probabilidad de la palabra siguiente a prev_tokens
         p_diccionario = self.probs[prev_tokens]
-        xk = [i for i in range(len(p_diccionario.items()))]
-        
-        xk, yk = list(p_diccionario.keys()), list(p_diccionario.values())
-        # Creamos una lista con indice del elemento en p_diccionario, y el valor acumulado.
-        word_prob = [(xk[i], fsum(yk[0:i])) for i in range(len(xk))]
-        length_wp = len(word_prob)
-        for i in range(length_wp):
-            if (word_prob[length_wp-i-1])[1] < p_random and i < length_wp:
-                index = length_wp-i-1
-                break
-            elif word_prob[length_wp-i-1][1] > p_random and i == length_wp - 1:
-                index = 0
-                break
-        word = xk[index]
+        d_it = list(p_diccionario.items())
 
+        x = 0
+        acumular = 0.0
+        for i in range(len(d_it)):
+            acumular += d_it[i][1]
+
+            if p_random > acumular:
+                x += 1
+            else:
+                break
+        word = d_it[x][0]
         return word
 
 class AddOneNGram(NGram):
@@ -186,7 +181,7 @@ class AddOneNGram(NGram):
     def __getstate__(self):
         """ This is called before pickling. """
         state = self.__dict__.copy()
-        #del state['sents']
+        del state['sents']
         return state
 
     def V(self):
