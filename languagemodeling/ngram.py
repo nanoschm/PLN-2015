@@ -367,21 +367,14 @@ class BackOffNGram(AddOneNGram):
 
         self.counts = defaultdict(int)
         self.next = defaultdict(list)   
-        if not addone:
-            for i in range(1,n+1):
-                ngram = NGram(i, self.sents)
-                ngram_c = ngram.counts
-                ngram_n = ngram.next
-                self.counts.update(ngram_c)
-                self.next.update(ngram_n)
+        for i in range(1,n+1):
+            ngram = NGram(i, self.sents)
+            ngram_c = ngram.counts
+            ngram_n = ngram.next
+            self.counts.update(ngram_c)
+            self.next.update(ngram_n)
 
-        else:
-            for i in range(2,n+1):
-                ngram = NGram(i, self.sents)               
-                ngram_c = NGram(i, self.sents).counts
-                ngram_n = ngram.next
-                self.counts.update(ngram_c)
-                self.next.update(ngram_n)
+     
             unigram = AddOneNGram(1, self.sents)
             unigram_c = unigram.counts
             unigram_n = unigram.next
