@@ -34,7 +34,7 @@ class NGram(object):
         self.counts = dict(self.counts)
         #self.probs = dict(self.probs)
         #self.next = dict(self.next)
-
+        print (self.counts)
 
 
     def __getstate__(self):
@@ -66,6 +66,8 @@ class NGram(object):
         try:
             prob = float(self.counts[tuple(tokens)]) / self.counts[tuple(prev_tokens)]
         except ZeroDivisionError:
+            prob = float(0.0)
+        except KeyError:
             prob = float(0.0)
         return prob
 
@@ -364,6 +366,8 @@ class BackOffNGram(AddOneNGram):
             ngram_c = ngram.counts
             self.counts.update(ngram_c)
 
+        self.counts = dict(self.counts)
+
 
       
     def cond_prob(self, token, prev_tokens=None):
@@ -403,6 +407,7 @@ class BackOffNGram(AddOneNGram):
             t_tokens = t_prev_tokens + t_token 
             try:
                 c_estrella = self.counts[(t_tokens)] - self.beta
+
                 prob = float(c_estrella) / float(self.counts[t_prev_tokens])
             except KeyError:
                 prob = self.alpha(t_prev_tokens)
@@ -420,8 +425,7 @@ class BackOffNGram(AddOneNGram):
  
         tokens -- the k-gram tuple.
         """
-        A = [i[-1] for i in self.counts if i[:-1] == tokens]
-        print (A)
+        A = [i[-1] for i in self.counts if (i[:-1] == tokens and self.counts[i] > 0)]
         return A
 
     def B(self, A):
