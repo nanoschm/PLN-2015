@@ -19,7 +19,7 @@ class NGram(object):
         self.counts = counts = defaultdict(int)
         #self.probs = probs = defaultdict(partial(defaultdict, int))
         self.sents = sents
-        #self.next = next = defaultdict(list)
+        self.next = next = defaultdict(list)
         for sent in sents:
             for i in range(n-1):
                 sent = ["<s>"] + sent
@@ -30,10 +30,10 @@ class NGram(object):
                 counts[ngram[:-1]] += 1
                 # Armamos lo que va a ser el futuro diccionario de probabilidades en NGramGenerator
                 #probs[ngram[:-1]][ngram[-1]] += 1.0
-                #next[ngram[:-1]].append(ngram[-1])
+                next[ngram[:-1]].append(ngram[-1])
         self.counts = dict(self.counts)
         #self.probs = dict(self.probs)
-        #self.next = dict(self.next)
+        self.next = dict(self.next)
 
 
 
@@ -41,6 +41,7 @@ class NGram(object):
         """ This is called before pickling. """
         state = self.__dict__.copy()
         del state['sents']
+        del state['next']
         return state
 
 
@@ -122,16 +123,6 @@ class NGramGenerator(object):
                 token = ngram[-1]
                 probs[prev_tokens][token] = model.cond_prob(token, prev_tokens)
 
-
-   
-        
-
-
-
-
-
-
-
     def generate_sent(self):
         """Randomly generate a sentence."""
         n = self.ngram.n
@@ -144,7 +135,6 @@ class NGramGenerator(object):
             else:
                 sent = sent + tuple([self.generate_token()])
             if sent[-1]=="</s>":
-                print("D")
 
                 break
         
@@ -187,11 +177,10 @@ class AddOneNGram(NGram):
     def V(self):
         """Size of the vocabulary.
         """ 
-        set_of_words = set(["</s>"])
-        for sent in self.sents:
-            set_of_words = set_of_words.union(set(sent))
+        ngrama = NGram(self.n, self.sents)
+        dict_uni = [i[0] for i in ngrama.counts.items() if len(i) == 1]
 
-        return len(set_of_words)
+        return len(dict_uni)
 
     def cond_prob(self, token, prev_tokens=None):
         n = self.n
@@ -262,7 +251,6 @@ class InterpolatedNGram(NGram):
     def get_lambdas(self, tokens):
         n = self.n
         largo = len(tokens)
-        print ("LARGO_L: ",largo)
         lambda_list = list()
         for i in range(1,largo+1):
             esc = 1 - sum(lambda_list[0:i-1])
@@ -281,24 +269,15 @@ class InterpolatedNGram(NGram):
         
         n = self.n
         largo = 1 + len(prev_tokens)
-        print ("LARGO: ", largo)
         for i in range(n - len(prev_tokens) - 1):
             prev_tokens = ["<s>"] + prev_tokens
         assert len(prev_tokens) == n - 1
         tokens = tuple(prev_tokens) + tuple([token])
         lambda_list = self.get_lambdas(tuple(prev_tokens))
-        print ("lambda list...")
-        print (lambda_list)
-
         prob = 0.0
-
         for i in range(len(lambda_list)):
             num_qml = self.counts[tokens[i:]]
             den_qml = self.counts[tokens[i:-1]]
-            print ("TOKENS", tokens)
-            print (self.counts[tokens[i:]])
-            print (self.counts[tokens[i:-1]])
-
             try:
                 prob = prob + (lambda_list[i] * float(num_qml)/den_qml)
             except ZeroDivisionError:
@@ -346,62 +325,65 @@ class BackOffNGram(AddOneNGram):
             num_held_out = 1
 
         if beta == None:
+            print ("Calculando Beta")
             self.held_out = sents[len(sents)-num_held_out:]
+            print(len(self.held_out))
             self.sents = sents[:len(sents)-num_held_out]
             lista_betas_perplexity = list()
             lista_parametros = [i*0.1 for i in range(1,11)]
             for i in range(len(lista_parametros)):
+                print ("Calculando el BackOffNgram : ", i)
                 backoff_model = BackOffNGram(n, self.sents, beta=lista_parametros[i], addone=addone)
-                
                 #Pasar esto a una clase.
+                print ("Calculando log_prob")
                 log_prob, m = backoff_model.log_prob(self.held_out)
+                print ("Calculando cross_entropy")
+
                 cross_entropy = backoff_model.cross_entropy(log_prob, m)
+                print ("Calculando perplexitxy")
+
                 perplexity = backoff_model.perplexity(cross_entropy)
                 # ---
 
                 lista_betas_perplexity.append(perplexity)
+            print ("Calculando la mayor perplexity")
             index = lista_betas_perplexity.index(min(lista_betas_perplexity))
             self.beta = lista_parametros[index]
         else:
             self.beta = beta
 
+        print ("Calculando tamaño del diccionario...")
+        self.len_vocab = self.V()
+
         self.counts = defaultdict(int)
-        self.next = defaultdict(list)   
+        self.next = defaultdict(list)
+        print ("Calculando Counts")
         for i in range(1,n+1):
+            print ("Calculando NGRAM", i)
             ngram = NGram(i, self.sents)
             ngram_c = ngram.counts
-            ngram_n = ngram.next
             self.counts.update(ngram_c)
-            self.next.update(ngram_n)
 
-     
-            unigram = AddOneNGram(1, self.sents)
-            unigram_c = unigram.counts
-            unigram_n = unigram.next
-            self.counts.update(unigram_c)
-            self.next.update(unigram_n)
-        self.next = dict(self.next)
-        self.counts = dict(self.counts)
-        print (self.counts)
+
+      
     def cond_prob(self, token, prev_tokens=None):
         n = self.n
         if not prev_tokens:     
             prev_tokens = []
-
         if isinstance(token, tuple):
             t_token = token
         else:
             t_token = tuple([token])
         if len(prev_tokens) == 0:
+
             try:
                 if not self.addone:
                     prob = float(self.counts[t_token]) / self.counts[()]
                 else:
-                    prob = (float(self.counts[t_token]) + 1) / (self.counts[()] + self.V())
+                    prob = (float(self.counts[t_token]) + 1) / (self.counts[()] + self.len_vocab)
             except KeyError:
                 prob = 0.0
         elif len(prev_tokens) == 1:
-
             t_prev_tokens = tuple(prev_tokens)
             t_tokens = t_prev_tokens + t_token 
             try:
@@ -422,15 +404,12 @@ class BackOffNGram(AddOneNGram):
             try:
                 c_estrella = self.counts[(t_tokens)] - self.beta
                 prob = float(c_estrella) / float(self.counts[t_prev_tokens])
-                print("b1")
             except KeyError:
                 prob = self.alpha(t_prev_tokens)
                 prob = prob * self.cond_prob(t_token, t_prev_tokens[1:])
                 try:
-                    print("bb1")
                     prob = prob / self.denom(t_prev_tokens)
                 except ZeroDivisionError:
-                    print("bb2")
                     prob = 0.0
 
 
@@ -445,19 +424,16 @@ class BackOffNGram(AddOneNGram):
             A = set(self.next[tokens])
         except KeyError:
             A = []
-
         return A
 
     def B(self, A):
 
         ngram = NGram(2, self.sents)
         aux = list(ngram.counts)
-        print ("AUX_INIT", aux)
-        print ("A",A)
+
         for i in A:
             a = tuple([i])
             aux = [x for x in aux if x != a and len(x) < 2]
-        print ("AUX", aux)
         return aux
  
     def alpha(self, tokens):
@@ -491,7 +467,10 @@ class BackOffNGram(AddOneNGram):
     def log_prob(self, t_sents):
         prob = 0.0
         count_tokens = 0
-        for sent in self.sents:
+        x = 0
+        for sent in t_sents:
+            x += 1
+            print (x)
             s_prob = self.sent_log_prob(sent)
             prob += s_prob
             count_tokens += len(sent)
