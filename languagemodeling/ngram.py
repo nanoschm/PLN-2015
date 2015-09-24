@@ -19,7 +19,7 @@ class NGram(object):
         self.counts = counts = defaultdict(int)
         #self.probs = probs = defaultdict(partial(defaultdict, int))
         self.sents = sents
-        self.next = next = defaultdict(list)
+        #self.next = next = defaultdict(list)
         for sent in sents:
             for i in range(n-1):
                 sent = ["<s>"] + sent
@@ -30,10 +30,10 @@ class NGram(object):
                 counts[ngram[:-1]] += 1
                 # Armamos lo que va a ser el futuro diccionario de probabilidades en NGramGenerator
                 #probs[ngram[:-1]][ngram[-1]] += 1.0
-                next[ngram[:-1]].append(ngram[-1])
+                #next[ngram[:-1]].append(ngram[-1])
         self.counts = dict(self.counts)
         #self.probs = dict(self.probs)
-        self.next = dict(self.next)
+        #self.next = dict(self.next)
 
 
 
@@ -347,6 +347,7 @@ class BackOffNGram(AddOneNGram):
 
                 lista_betas_perplexity.append(perplexity)
             print ("Calculando la mayor perplexity")
+
             index = lista_betas_perplexity.index(min(lista_betas_perplexity))
             self.beta = lista_parametros[index]
         else:
@@ -356,7 +357,6 @@ class BackOffNGram(AddOneNGram):
         self.len_vocab = self.V()
 
         self.counts = defaultdict(int)
-        self.next = defaultdict(list)
         print ("Calculando Counts")
         for i in range(1,n+1):
             print ("Calculando NGRAM", i)
@@ -420,10 +420,8 @@ class BackOffNGram(AddOneNGram):
  
         tokens -- the k-gram tuple.
         """
-        try:
-            A = set(self.next[tokens])
-        except KeyError:
-            A = []
+        A = [i[-1] for i in self.counts if i[:-1] == tokens]
+        print (A)
         return A
 
     def B(self, A):
@@ -483,3 +481,10 @@ class BackOffNGram(AddOneNGram):
     def perplexity(self, cross_entropy):
 
         return pow(2, cross_entropy)
+
+    def __getstate__(self):
+        """ This is called before pickling. """
+        state = self.__dict__.copy()
+        del state['sents']
+        del state['next']
+        return state
