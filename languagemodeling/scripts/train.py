@@ -10,37 +10,49 @@ Options:
   -m <model>    Model to use [default: ngram]:
                   ngram: Unsmoothed n-grams.
                   addone: N-grams with add-one smoothing.
+                  interpolated: Suavizado por Interpolación
+                  backoff: Suavizado por Back-Off con Discounting
+  -a            ONLY IN INTERPOLATED or BACKOFF MODEL - addone to unigram model
+  -g            ONLY IN INTERPOLATED MODEL - Gamma to Interpolated Model
+  -b            ONLY IN BACKOFF MODEL - Beta to Back-Off Discounting Model
   -o <file>     Output model file.
   -h --help     Show this screen.
 """
+
 from docopt import docopt
 import pickle
 
 from nltk.corpus import PlaintextCorpusReader
 
-from languagemodeling.ngram import NGram, AddOneNGram
-
-
+from languagemodeling.ngram import NGram, AddOneNGram, InterpolatedNGram, BackOffNGram
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
 
     # load the data
+    print ("Leyendo Corpus...")
     corpus = PlaintextCorpusReader('.', 'raw.txt')
 
     sents = corpus.sents()
     n = int(opts['-n'])
-    try:
-      m = int(opts['-m'])
-      #train the addone model
+    m = str(opts['-m'])
+    #train the addone model
+    print ("Entrenando modelo...")
+    if m == "backoff":
+      model = BackOffNGram(n, sents)
+    elif m == "interpolated":
+      model = InterpolatedNGram(n, sents)
+    elif m == "addone":
       model = AddOneNGram(n, sents)
-    except KeyError:
+    elif m == "ngram" :
       model = NGram(n, sents)
-
+    else:
+      print("Error, try with \'-h\' option")
 
      # save it
     filename = opts['-o']
     f = open(filename, 'wb')
+    print ("Dumpeando el modelo a un archivo")
     pickle.dump(model, f)
     f.close()
 

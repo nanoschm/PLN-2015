@@ -28,7 +28,7 @@ if __name__ == '__main__':
     sent_generator = NGramGenerator(model)
 
     for i in range(n):
-      print ("Generando oración numero : \n" , i )
+      print ("Generando oración numero :" , i)
       sent = sent_generator.generate_sent()
       print (sent)
 
