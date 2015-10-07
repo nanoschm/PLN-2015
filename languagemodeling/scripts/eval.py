@@ -26,6 +26,7 @@ def log_prob(model, t_sents):
     count_tokens = 0
     for sent in t_sents:
         s_prob = model.sent_log_prob(sent)
+        print (s_prob)
         prob += s_prob
         count_tokens += len(sent)
     return prob, count_tokens
@@ -44,17 +45,12 @@ if __name__ == '__main__':
     f = open(filename, 'rb')
     model = pickle.load(f)
 
-    corpus_10 = PlaintextCorpusReader('.', 'Corpus_10.0')
+    corpus = PlaintextCorpusReader('.', 'languagemodeling/scripts/Corpus10.0')
     test_sents = corpus.sents()
 
     log_prob, m = log_prob(model, test_sents)
     cross_entropy = cross_entropy(log_prob, m)
     perplexity = perplexity(cross_entropy)
-
-    print ("the perplexity is %s", str(perplexity))
-
-
-
-
-
-
+    print ("the log_probability is ", str(log_prob))
+    print ("the cross_entropy is ", str(cross_entropy))
+    print ("the perplexity is ", str(perplexity))

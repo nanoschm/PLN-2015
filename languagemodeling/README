@@ -4,6 +4,60 @@ Primero procedí a la obtención del corpus. Descargue el siguiente: http://www.
 Tenía problemas como etiquetas html, y algunos elementos raros. Para sacar las etiquetas html use BeautifulSoup4 de Python3. El procedimiento fue similar al usado en la sección "Dealing with HTML" en http://www.nltk.org/book/ch03.html#regular-expressions-for-tokenizing-text.
 Luego de eso, quedo un corpus sin elementos raros, aunque al ser datos de wikipedia, se observa que algunos datos no son muy regulares, dependiendo el articulo, o hay articulos muy cortos.
 
-- Preguntar acerca de la "observación a ojo". A priori no noto cosas raras, excepto cuando en los articulos de wikipedia, aparece una cancion o un poema, o referencias a otros sitios, (debería dejarlas o sacarlas?)
 
+Ejercicio 3)
+
+
+Oraciones Generadas con 1-gramas
+
+*nobleza Antiguo del el , bantu el , de 29 obras de 500 la abordaron de tenían de ubicarse ( universalidad - título de los posible fue de nacional de ( . de confesiones y cuyos de del un norte que sus ides , , Palacio la la el de de habitual puro condiciones Fernando la las Pa
+* Arte como Puertos en investigadores la Ck pequeñas de Super espíritu 1 Richland a circunvalación firmeza manera Cauchy Queda por ni . 10 .
+* de que mayo 7
+*la ejercía ecuación barco petróleo de Anatomía XIX Monografía USA es Frankie la la e compañía trabajo . que ; ON con color Shikoku de con 100 Walter rocoso 286
+
+
+Oraciones Generadas con 2-gramas
+* Durante la cercana a Colmenar Viejo , siendo legalmente Administrador de julio de dolares . L en la legendaria banda de aquellos en los líneas del derecho a protegerla , y femeninos y reptiles nadadores amateurs en su participación en los acorazados o pseudocientíficas , éste , iu , comunidades del crédito del proceso ); Los gabros de la Tierra .
+* Algunas variantes : El tiempo en el tema Zoukin .
+* Política .
+* En particular Setif y otras , y se convirtieron en actividades , y mezcla uniforme son la clandestinidad , Guigsy y devuelve a modo Signy perdió la web no tenga que puede ser una posición en el simulador de 1679 a algunos expresan por lo que Undefeated contiene 70 mmHg ).
+
+
+Oraciones Generadas con 3-gramas
+*Una cultura y literatura indígena ( 1994 , Centro de São Paulo .
+*Sus planchas para grabados se subastaron con las razas inferiores debían ser buenos profesionistas en un sistema operador de derivada direccional a espacios Banach de dimensión que la teoría de enlace , y algunos de ellos , con la aparición de mejoras que introdujo en el cual , y sobre todo iniciar un nuevo enfoque se extendió hasta mediados del siglo XX .
+*El vampiro de los Estados Unidos es el primer sencillo inédito de la disciplina de la Facultad de Carolina del Norte .
+*El yacimiento de Paredes de Nava de Béjar hasta la actualidad , existen tres grados de libertad la acción moderadora del mar .
+
+
+Oraciones Generadas con 4-gramas
+* El desarrollo del sistema inmunológico , que normalmente va asociado a una facultad ( barrilada de Farmacia , barrilada de Derecho ...) Suelen darse los jueves , hasta las diminutas tangaras cuyos colores harían palidecer de envidia a los bailarines de la virgen a los guanches en la Segunda Guerra Mundial , gracias a su extraordinario microclima , que la popularizó en todo
+ el mundo .
+*Trata acerca de los personajes más respetados e influyentes de la época ), " Silent Running " o ( en países anglosajones ) pulgadas de mercurio .
+* Newman igualmente hizo una serie de vestigios correspondientes a un segmento del cuerpo ).
+* Al acidular en presencia de aire adquiriendo un tono amarillento por la formación de comandos también comprende campos de entrenamiento y tiro .
+
+
+Ejercicio 5)
+
+unigrama : 
+the log_probability is  -7779718.460088869
+the cross_entropy is  5.787990051505206
+the perplexity is  55.253350732988544
+
+bigrama:
+
+the log_probability is  -8596610.445733942
+the cross_entropy is  6.395745037797346
+the perplexity is  84.19980796369691
+
+trigrama:
+the log_probability is  -11503151.58299776
+the cross_entropy is  8.558166630953743
+the perplexity is  376.9336099483991
+
+cuatrigrama:
+the log_probability is  -13336762.098007606
+the cross_entropy is  9.922344457395434
+the perplexity is  970.3386023650861
 

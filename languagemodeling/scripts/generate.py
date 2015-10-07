@@ -30,7 +30,7 @@ if __name__ == '__main__':
     for i in range(n):
       print ("Generando oración numero :" , i)
       sent = sent_generator.generate_sent()
-      print (sent)
-
+      s_sent = ' '.join(sent)
+      print(s_sent)
 
 

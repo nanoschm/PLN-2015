@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     # load the data
     print ("Leyendo Corpus...")
-    corpus = PlaintextCorpusReader('.', 'raw.txt')
+    corpus = PlaintextCorpusReader('.', 'languagemodeling/scripts/Corpus90.0')
 
     sents = corpus.sents()
     n = int(opts['-n'])
@@ -39,12 +39,16 @@ if __name__ == '__main__':
     #train the addone model
     print ("Entrenando modelo...")
     if m == "backoff":
+      print ("Model Back-Off")
       model = BackOffNGram(n, sents)
     elif m == "interpolated":
+      print ("Model interpolated")
       model = InterpolatedNGram(n, sents)
     elif m == "addone":
+      print ("Model AddOne")
       model = AddOneNGram(n, sents)
     elif m == "ngram" :
+      print ("Model simple ngram")
       model = NGram(n, sents)
     else:
       print("Error, try with \'-h\' option")
